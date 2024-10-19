@@ -1,4 +1,4 @@
-from classes import Sheeta, SheetaChannel, SheetaVideo
+from .classes import Sheeta, SheetaChannel, SheetaVideo
 
 
 def get_sheeta_class(url: str) -> SheetaChannel|SheetaVideo|None:
