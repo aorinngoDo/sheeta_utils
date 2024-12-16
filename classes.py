@@ -60,7 +60,7 @@ class Sheeta:
             self.type = "video"
             self.video_id = parsed_url.path.split("/")[-1]
 
-        elif re.match(r"^[^/]+/[^/]+(/videos/?)?$", parsed_url_text):
+        elif re.match(r"^[^/]+/[^/]+(/videos/?|/)?$", parsed_url_text):
             # multi channel site (with channel name) / videos
             self.type = "channel"
             self.channel_id = parsed_url.path.split("/")[1]
