@@ -126,7 +126,7 @@ class SheetaVideo(Sheeta):
             self.set_site_settings()
 
         try:
-            video_info_request = requests.get(f"{self.site_settings.get("api_base_url")}/video_pages/{self.video_id}", headers=self.base_headers, timeout=20)
+            video_info_request = requests.get(f'{self.site_settings.get("api_base_url")}/video_pages/{self.video_id}', headers=self.base_headers, timeout=20)
             video_info_request.raise_for_status()
             self.video_info_dump = video_info_request.json()
         except Exception as e:
@@ -189,7 +189,7 @@ class SheetaChannel(Sheeta):
 
         if self.site_settings.get("channel") is True or self.site_settings.get("channel") is None:
             try:
-                ch_fcid_request = requests.get(f"{self.site_settings.get("api_base_url")}/content_providers/channels", headers=self.base_headers, timeout=20)
+                ch_fcid_request = requests.get(f'{self.site_settings.get("api_base_url")}/content_providers/channels', headers=self.base_headers, timeout=20)
                 ch_fcid_request.raise_for_status()
                 fcid = [data for data in ch_fcid_request.json().get("data", {}).get("content_providers", []) if data["domain"] == f"https://{self.base_domain}/{self.channel_id}"][0].get("id")
                 if fcid is None or not isinstance(fcid, int):
@@ -227,7 +227,7 @@ class SheetaChannel(Sheeta):
                 _params = _params + (('tag', self.tag),)
 
             try:
-                video_list_request = requests.get(f"{self.site_settings.get("api_base_url")}/fanclub_sites/{self.fcid}/{page_type}_pages", headers=self.base_headers, params=_params, timeout=20)
+                video_list_request = requests.get(f'{self.site_settings.get("api_base_url")}/fanclub_sites/{self.fcid}/{page_type}_pages', headers=self.base_headers, params=_params, timeout=20)
                 video_list_request.raise_for_status()
                 video_list_json = video_list_request.json()
 
