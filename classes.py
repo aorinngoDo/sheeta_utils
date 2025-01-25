@@ -60,7 +60,18 @@ class Sheeta:
             self.type = "video"
             self.video_id = parsed_url.path.split("/")[-1]
 
-        elif re.match(r"^[^/]+/[^/]+(/videos/?)?$", parsed_url_text):
+        elif re.match(r"^[^/]+/[^/]+/(live)/[A-Za-z0-9]+$", parsed_url_text):
+            # multi channel site (with channel name) / single live
+            self.type = "live"
+            self.channel_id = parsed_url.path.split("/")[-3]
+            self.video_id = parsed_url.path.split("/")[-1]
+
+        elif re.match(r"^[^/]+/(live)/[A-Za-z0-9]+$", parsed_url_text):
+            # single channel site / single live
+            self.type = "live"
+            self.video_id = parsed_url.path.split("/")[-1]
+
+        elif re.match(r"^[^/]+/[^/]+(/videos/?|/)?$", parsed_url_text):
             # multi channel site (with channel name) / videos
             self.type = "channel"
             self.channel_id = parsed_url.path.split("/")[1]
@@ -99,9 +110,10 @@ class SheetaVideo(Sheeta):
         url (str): URL of the video
         type (str): Type of the video (video)
         channel_id (str): Channel ID of the video
-        video_id (str): Video ID of the video
+        video_id (str): Video ID
         video_info_dump (dict): Video info dump
     """
+
     def __init__(self, url: str):
         super().__init__(url)
         self.type = "video"
@@ -120,6 +132,25 @@ class SheetaVideo(Sheeta):
         except Exception as e:
             raise ValueError(f"Failed to get video info: {e}")
 
+class SheetaLive(SheetaVideo):
+
+    """
+    SheetaLive class for getting live info
+
+    Args:
+        url (str): URL of the live
+
+    Attributes:
+        url (str): URL of the video
+        type (str): Type of the video (live)
+        channel_id (str): Channel ID of the video
+        video_id (str): Video ID
+        video_info_dump (dict): Video info dump
+    """
+
+    def __init__(self, url: str):
+        super().__init__(url)
+        self.type = "live"
 
 class SheetaChannel(Sheeta):
 
@@ -136,6 +167,8 @@ class SheetaChannel(Sheeta):
         tag (str): Tag of the channel
         video_dumps (list): Video info dumps
         videos (list): Video objects
+        live_dumps (list): Live info dumps
+        lives (list): Live objects
         fcid (int): Fanclub site ID of the channel
     """
 
@@ -146,6 +179,8 @@ class SheetaChannel(Sheeta):
         self.tag = None
         self.video_dumps = []
         self.videos = []
+        self.live_dumps = []
+        self.lives = []
         self.fcid = None
 
     def check_channel_type(self):
@@ -165,32 +200,46 @@ class SheetaChannel(Sheeta):
         else:
             self.fcid = self.site_settings.get("fanclub_site_id")
 
-    def get_videos_list(self):
+    def _get_pages_list(self, page_type: str):
         if not self.fcid:
             self.check_channel_type()
+
+        if not page_type == "video" and not page_type == "live":
+            raise ValueError("Invalid page type")
 
         _page_num = 1
 
         while True:
-            _params = (
-                ('sort', '-display_date'),
-                ('page', _page_num),
-                ('per_page', '100'),
-            )
+            if page_type == "video":
+                _params = (
+                    ('sort', '-display_date'),
+                    ('page', _page_num),
+                    ('per_page', '100'),
+                )
+            elif page_type == "live":
+                _params = (
+                    ('live_type', '1'),
+                    ('page', _page_num),
+                    ('per_page', '100'),
+                )
 
             if self.tag:
                 _params = _params + (('tag', self.tag),)
 
             try:
-                video_list_request = requests.get(f"{self.site_settings.get("api_base_url")}/fanclub_sites/{self.fcid}/video_pages", headers=self.base_headers, params=_params, timeout=20)
+                video_list_request = requests.get(f"{self.site_settings.get("api_base_url")}/fanclub_sites/{self.fcid}/{page_type}_pages", headers=self.base_headers, params=_params, timeout=20)
                 video_list_request.raise_for_status()
                 video_list_json = video_list_request.json()
 
                 video_info_list = video_list_json.get("data", {}).get("video_pages", {}).get("list", [])
-                video_url_list = [f'https://{self.base_domain}/{self.channel_id + "/" if self.channel_id else "" }video/{video.get("content_code")}' for video in video_info_list]
+                video_url_list = [f'https://{self.base_domain}/{self.channel_id + "/" if self.channel_id else "" }{page_type}/{video.get("content_code")}' for video in video_info_list]
 
-                self.video_dumps.extend(video_info_list)
-                self.videos.extend([SheetaVideo(video_url) for video_url in video_url_list])
+                if page_type == "video":
+                    self.video_dumps.extend(video_info_list)
+                    self.videos.extend([SheetaVideo(video_url) for video_url in video_url_list])
+                elif page_type == "live":
+                    self.live_dumps.extend(video_info_list)
+                    self.lives.extend([SheetaLive(video_url) for video_url in video_url_list])
 
                 if len(video_info_list) < 100:
                     break
@@ -201,3 +250,8 @@ class SheetaChannel(Sheeta):
             except Exception as e:
                 raise ValueError(f"Failed to get video list: {e}")
 
+    def get_videos_list(self):
+        self._get_pages_list("video")
+
+    def get_lives_list(self):
+        self._get_pages_list("live")
