@@ -40,6 +40,12 @@ class Sheeta:
 
         self.base_domain = parsed_url.netloc
 
+        try:
+            import fake_useragent
+            useragent = fake_useragent.UserAgent(browsers=['edge', 'chrome'], os=["windows"], min_percentage=1.0).random
+        except ImportError:
+            pass
+
         self.base_headers = {
                 'fc_use_device': 'null',
                 'origin': f'https://{self.base_domain}',
