@@ -42,7 +42,7 @@ class Sheeta:
 
         try:
             import fake_useragent
-            useragent = fake_useragent.UserAgent(browsers=['edge', 'chrome'], os=["windows"], min_percentage=1.0).random
+            useragent = fake_useragent.UserAgent(os='Windows', browsers=['Edge', 'Chrome']).random
         except ImportError:
             pass
 
