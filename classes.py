@@ -17,6 +17,7 @@ class Sheeta:
         base_domain (str): Base domain of the site
         site_settings (dict): Site settings
         base_headers (dict): Base headers for requests
+        fcid (int): Fanclub site ID
     """
 
     def __init__(self, url: str):
@@ -25,6 +26,7 @@ class Sheeta:
         self.base_domain = None
         self.site_settings = {}
         self.base_headers = {}
+        self.fcid = None
 
     def __str__(self):
         return f"{self.__class__.__name__}: ({self.__dict__})"
@@ -103,6 +105,22 @@ class Sheeta:
         except Exception as e:
             raise ValueError(f"Failed to get site settings: {e}")
 
+    def set_fcid(self):
+        if not self.site_settings:
+            self.set_site_settings()
+
+        if self.site_settings.get("channel") is True or self.site_settings.get("channel") is None:
+            try:
+                ch_fcid_request = requests.get(f'{self.site_settings.get("api_base_url")}/content_providers/channels', headers=self.base_headers, timeout=20)
+                ch_fcid_request.raise_for_status()
+                fcid = [data for data in ch_fcid_request.json().get("data", {}).get("content_providers", []) if data["domain"] == f"https://{self.base_domain}/{self.channel_id}"][0].get("id")
+                if fcid is None or not isinstance(fcid, int):
+                    raise ValueError("Failed to get fcid")
+                self.fcid = fcid
+            except Exception as e:
+                raise ValueError(f"Failed to get fcid: {e}")
+        else:
+            self.fcid = self.site_settings.get("fanclub_site_id")
 
 class SheetaVideo(Sheeta):
 
@@ -128,11 +146,11 @@ class SheetaVideo(Sheeta):
         self.video_info_dump = {}
 
     def get_video_info(self):
-        if not self.site_settings:
-            self.set_site_settings()
+        if not self.fcid:
+            self.set_fcid()
 
         try:
-            video_info_request = requests.get(f'{self.site_settings.get("api_base_url")}/video_pages/{self.video_id}', headers=self.base_headers, timeout=20)
+            video_info_request = requests.get(f'{self.site_settings.get("api_base_url")}/video_pages/{self.video_id}', headers=self.base_headers|{'fc_site_id': str(self.fcid)}, timeout=20)
             video_info_request.raise_for_status()
             self.video_info_dump = video_info_request.json()
         except Exception as e:
@@ -175,7 +193,6 @@ class SheetaChannel(Sheeta):
         videos (list): Video objects
         live_dumps (list): Live info dumps
         lives (list): Live objects
-        fcid (int): Fanclub site ID of the channel
     """
 
     def __init__(self, url: str):
@@ -187,28 +204,10 @@ class SheetaChannel(Sheeta):
         self.videos = []
         self.live_dumps = []
         self.lives = []
-        self.fcid = None
-
-    def check_channel_type(self):
-        if not self.site_settings:
-            self.set_site_settings()
-
-        if self.site_settings.get("channel") is True or self.site_settings.get("channel") is None:
-            try:
-                ch_fcid_request = requests.get(f'{self.site_settings.get("api_base_url")}/content_providers/channels', headers=self.base_headers, timeout=20)
-                ch_fcid_request.raise_for_status()
-                fcid = [data for data in ch_fcid_request.json().get("data", {}).get("content_providers", []) if data["domain"] == f"https://{self.base_domain}/{self.channel_id}"][0].get("id")
-                if fcid is None or not isinstance(fcid, int):
-                    raise ValueError("Failed to get fcid")
-                self.fcid = fcid
-            except Exception as e:
-                raise ValueError(f"Failed to get fcid: {e}")
-        else:
-            self.fcid = self.site_settings.get("fanclub_site_id")
 
     def _get_pages_list(self, page_type: str):
         if not self.fcid:
-            self.check_channel_type()
+            self.set_fcid()
 
         if not page_type == "video" and not page_type == "live":
             raise ValueError("Invalid page type")
