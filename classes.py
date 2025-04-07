@@ -249,7 +249,7 @@ class SheetaChannel(Sheeta):
                 if len(video_info_list) < 100:
                     break
                 else:
-                    page_num += 1
+                    _page_num += 1
             except requests.exceptions.RequestException as e:
                 break
             except Exception as e:
