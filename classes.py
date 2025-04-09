@@ -205,7 +205,7 @@ class SheetaChannel(Sheeta):
         self.live_dumps = []
         self.lives = []
 
-    def _get_pages_list(self, page_type: str):
+    def _get_pages_list(self, page_type: str, params: tuple = ()):
         if not self.fcid:
             self.set_fcid()
 
@@ -215,24 +215,12 @@ class SheetaChannel(Sheeta):
         _page_num = 1
 
         while True:
-            if page_type == "video":
-                _params = (
-                    ('sort', '-display_date'),
-                    ('page', _page_num),
-                    ('per_page', '100'),
-                )
-            elif page_type == "live":
-                _params = (
-                    ('live_type', '1'),
-                    ('page', _page_num),
-                    ('per_page', '100'),
-                )
-
+            params = params + (('page', _page_num), ('per_page', '100'),)
             if self.tag:
-                _params = _params + (('tag', self.tag),)
+                params = params + (('tag', self.tag),)
 
             try:
-                video_list_request = requests.get(f'{self.site_settings.get("api_base_url")}/fanclub_sites/{self.fcid}/{page_type}_pages', headers=self.base_headers, params=_params, timeout=20)
+                video_list_request = requests.get(f'{self.site_settings.get("api_base_url")}/fanclub_sites/{self.fcid}/{page_type}_pages', headers=self.base_headers, params=params, timeout=20)
                 video_list_request.raise_for_status()
                 video_list_json = video_list_request.json()
 
@@ -256,7 +244,25 @@ class SheetaChannel(Sheeta):
                 raise ValueError(f"Failed to get video list: {e}")
 
     def get_videos_list(self):
-        self._get_pages_list("video")
+        self._get_pages_list(
+            "video",
+            params = (
+                ('sort', '-display_date'),
+            )
+        )
 
-    def get_lives_list(self):
-        self._get_pages_list("live")
+    def get_lives_now_list(self):
+        self._get_pages_list(
+            "live",
+            params = (
+                ('live_type', '1'),
+            )
+        )
+
+    def get_lives_schedule_list(self):
+        self._get_pages_list(
+            "live",
+            params = (
+                ('live_type', '2'),
+            )
+        )
