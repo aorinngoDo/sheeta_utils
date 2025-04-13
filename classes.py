@@ -245,7 +245,7 @@ class SheetaChannel(Sheeta):
 
     def get_videos_list(self):
         self._get_pages_list(
-            "video",
+            page_type = "video",
             params = (
                 ('sort', '-display_date'),
             )
@@ -253,7 +253,7 @@ class SheetaChannel(Sheeta):
 
     def get_lives_now_list(self):
         self._get_pages_list(
-            "live",
+            page_type = "live",
             params = (
                 ('live_type', '1'),
             )
@@ -261,7 +261,7 @@ class SheetaChannel(Sheeta):
 
     def get_lives_schedule_list(self):
         self._get_pages_list(
-            "live",
+            page_type = "live",
             params = (
                 ('live_type', '2'),
             )
