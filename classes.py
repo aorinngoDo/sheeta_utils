@@ -213,9 +213,10 @@ class SheetaChannel(Sheeta):
             raise ValueError("Invalid page type")
 
         _page_num = 1
+        params_original = params
 
         while True:
-            params = params + (('page', _page_num), ('per_page', '100'),)
+            params = params_original + (('page', _page_num), ('per_page', '100'), ('sort', 'display_date'))
             if self.tag:
                 params = params + (('tag', self.tag),)
 
